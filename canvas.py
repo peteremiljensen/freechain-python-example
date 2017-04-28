@@ -5,6 +5,7 @@ colors = {'r' : Back.RED + '  ' + Back.RESET,
           'b' : Back.BLUE + '  ' + Back.RESET,
           'y' : Back.YELLOW + '  ' + Back.RESET,
           'w' : Back.WHITE + '  ' + Back.RESET,
+          'bl': Back.BLACK + '  ' + Back.RESET,
            0  : Back.BLACK + '  ' + Back.RESET}
 
 class Canvas():
