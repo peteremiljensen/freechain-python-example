@@ -1,3 +1,6 @@
 [submodule "blockchain-python"]
 	path = blockchain-python
 	url = https://github.com/peteremiljensen/blockchain-python.git
+[submodule "blockchain"]
+	path = blockchain
+	url = https://github.com/peteremiljensen/blockchain-python.git
