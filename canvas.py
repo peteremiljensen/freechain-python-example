@@ -1,12 +1,14 @@
 from colorama import Back
 
-colors = {'r' : Back.RED + '  ' + Back.RESET,
-          'g' : Back.GREEN + '  ' + Back.RESET,
-          'b' : Back.BLUE + '  ' + Back.RESET,
-          'y' : Back.YELLOW + '  ' + Back.RESET,
-          'w' : Back.WHITE + '  ' + Back.RESET,
-          'bl': Back.BLACK + '  ' + Back.RESET,
-           0  : Back.BLACK + '  ' + Back.RESET}
+colors = {'red'     : Back.RED + '  ' + Back.RESET,
+          'green'   : Back.GREEN + '  ' + Back.RESET,
+          'blue'    : Back.BLUE + '  ' + Back.RESET,
+          'yellow'  : Back.YELLOW + '  ' + Back.RESET,
+          'white'   : Back.WHITE + '  ' + Back.RESET,
+          'black'   : Back.BLACK + '  ' + Back.RESET,
+          'magenta' : Back.MAGENTA + '  ' + Back.RESET,
+          'cyan'    : Back.CYAN + '  ' + Back.RESET,
+           0        : Back.BLACK + '  ' + Back.RESET}
 
 class Canvas():
     def __init__(self, w=50, h=80, no_players=5):
@@ -62,5 +64,8 @@ class Canvas():
         for row in self._canvas:
             print('')
             for elem in row:
-                print(colors[elem], end='')
-        print('\n')
+                try:
+                    print(colors[elem], end='')
+                except:
+                    print(colors[0], end='')
+            print('\n')
