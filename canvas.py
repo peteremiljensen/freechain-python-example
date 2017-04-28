@@ -39,7 +39,7 @@ class Canvas():
             print('Player is not a part of the game')
             return False
         try:
-            self._canvas[y][x] = color
+            self._canvas[x][y] = color
         except IndexError:
             print('Coordinates are out of bounds')
             return False
