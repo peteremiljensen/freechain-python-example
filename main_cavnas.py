@@ -6,7 +6,7 @@ import argparse
 from cmd import Cmd
 
 from canvas import *
-from blockchain.node import *
+from blockchain-python.blockchain.node import *
 
 #                   _
 #                  (_)
