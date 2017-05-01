@@ -1,4 +1,4 @@
-from block import *
+from blockchain.block import *
 import datetime
 
 loaves = []
@@ -8,7 +8,7 @@ nounce = 0
 block = None
 while True:
     timestamp = str(datetime.datetime.now())
-    block = Block(loaves, height, previous_block, timestamp, nounce)
+    block = Block(loaves, height, previous_block, timestamp, {"nounce": nounce})
     #print(block.get_hash()[:5])
     if block.get_hash()[:4] == '0000':
         print (block.json())

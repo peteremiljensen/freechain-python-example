@@ -86,6 +86,12 @@ class Prompt(Cmd):
         self._port = port
         self._file = file
         self._node = Node(self._port)
+        genesis_block = Block.create_block_from_dict(
+            {"hash":"00001620395c8da353f5005e713fe2fee85ad63c618ad01b7dd712bc5f4cc56d",
+             "height":0, "loaves":[], "data":"",
+             "previous_block_hash":"-1",
+             "timestamp":"2017-05-01 15:19:56.585873"})
+        self._node._chain._chain = [genesis_block]
 
         self._procesed_height = 0
 

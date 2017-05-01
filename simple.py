@@ -44,7 +44,8 @@ def mine(loaves, prev_block):
     nounce = 0
     block = None
     while True:
-        block = Block(loaves, height, previous_block_hash, timestamp, nounce)
+        block = Block(loaves, height, previous_block_hash, timestamp,
+                      {"nounce":nounce})
         if block.get_hash()[:4] == '0000':
             return block
         nounce += 1
@@ -78,6 +79,12 @@ class Prompt(Cmd):
         self._port = port
         self._file = file
         self._node = Node(self._port)
+        genesis_block = Block.create_block_from_dict(
+            {"hash":"000077dbf86e9c0d593ac746a0658d88b966ddd0a132dcf9294c23a929ed4573",
+             "height":0, "loaves":[], "data":{"nounce":27413},
+             "previous_block_hash":"-1",
+             "timestamp":"2017-05-01 15:16:52.579123"})
+        self._node._chain._chain = [genesis_block]
 
         if file and os.path.exists(self._file):
             chain = Chain.read_chain(self._file)
