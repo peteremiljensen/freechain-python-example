@@ -11,7 +11,7 @@ colors = {'red'     : Back.RED + '  ' + Back.RESET,
            0        : Back.BLACK + '  ' + Back.RESET}
 
 class Canvas():
-    def __init__(self, w=80, h=50, no_players=5):
+    def __init__(self, w=20, h=20, no_players=5):
         self._canvas = [[0]*w for i in range(h)]
         self.no_players = no_players
         self.players = []
@@ -29,10 +29,8 @@ class Canvas():
 
     def add_player_check(self, name):
         if len(self.players) >= self.no_players:
-            print('Game is full')
             return False
         if name in self.players:
-            print('Name is already taken')
             return False
 
         return True

@@ -21,9 +21,13 @@ parser = argparse.ArgumentParser(description='program for testing of ' +
                                              'blockchain framework')
 parser.add_argument('-p', '--port', nargs='?', default='9000',
                     help='Port for the node to use')
+parser.add_argument('-f', '--file', nargs='?',
+                    help='Path to file containing a blockchain to load' +
+                    'if the file does not eists, one is created')
 
 args = parser.parse_args()
 port = args.port
+file = args.file
 
 def loaf_validator(loaf):
     hash_calc = loaf.calculate_hash()
@@ -80,12 +84,31 @@ class Prompt(Cmd):
         super().__init__()
 
         self._port = port
+        self._file = file
         self._node = Node(self._port)
+
         self._procesed_height = 0
 
         self.game = Canvas()
         self.name = None
         self.color = None
+
+        if file and os.path.exists(self._file):
+            chain = Chain.read_chain(self._file)
+
+            if not chain.validate():
+                self._file = None
+                print(fail('Loaded blockchain is not valid'))
+                self.do_quit(args)
+
+            for i in range(1, chain.get_length()):
+                if not self._node.add_block(chain.get_block(i)):
+                    print(warning('Block of height ' + str(chain.get_block(i).get_height())+\
+                                  'read from file, could not be added. '))
+                    self.do_quit(args)
+            self._procesed_height = self.proces_chain(self._procesed_height)
+
+
 
         self._node.start()
 
@@ -108,8 +131,6 @@ class Prompt(Cmd):
                 self._node.connect_node(ip, l[1])
             else:
                 self._node.connect_node(ip)
-            while player_block_hash == self._node._chain.get_block(1).get_hash():
-                time.sleep(0.2)
             self.game.players = []
             self._procesed_height = 0
             self._procesed_height = self.proces_chain(self._procesed_height)
@@ -170,9 +191,9 @@ class Prompt(Cmd):
     def join_game(self):
         if self.game.add_player_check(self.name):
             try:
-                loaf = Loaf({'color' : None, 'name' : self.name,
-                             'type' : 'add_player', 'x': None,
-                             'y' : None})
+                loaf = Loaf({'color' : "none", 'name' : self.name,
+                             'type' : 'add_player', 'x': "none",
+                             'y' : "none"})
                 if self._node.add_loaf(loaf):
                     self.do_mine('')
             except:
@@ -278,6 +299,8 @@ class Prompt(Cmd):
     def do_quit(self, args):
         ''' Quits program
         '''
+        if self._file:
+            Chain.save_chain(self._file, self._node._chain)
         print(info('Quitting'))
         raise SystemExit
 
