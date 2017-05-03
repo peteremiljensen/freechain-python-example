@@ -156,7 +156,6 @@ class Prompt(Cmd):
             raise
 
     def proces_chain(self, height):
-        print(height)
         if not height < self._node._chain.get_length() - 1:
             return height
         chain = self._node._chain._chain[height + 1:]
