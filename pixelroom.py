@@ -131,12 +131,12 @@ class Prompt(Cmd):
             print(fail('invalid number of arguments'))
             return
         try:
-            player_block_hash = self._node._chain.get_block(1).get_hash()
             ip = l[0]
             if len(l) == 2:
                 self._node.connect_node(ip, l[1])
             else:
                 self._node.connect_node(ip)
+            time.sleep(0.5)
             self.game.players = []
             self._procesed_height = 0
             self._procesed_height = self.proces_chain(self._procesed_height)
@@ -156,6 +156,7 @@ class Prompt(Cmd):
             raise
 
     def proces_chain(self, height):
+        print(height)
         if not height < self._node._chain.get_length() - 1:
             return height
         chain = self._node._chain._chain[height + 1:]

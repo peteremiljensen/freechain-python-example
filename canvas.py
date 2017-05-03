@@ -11,7 +11,7 @@ colors = {'red'     : Back.RED + '  ' + Back.RESET,
            0        : Back.BLACK + '  ' + Back.RESET}
 
 class Canvas():
-    def __init__(self, w=20, h=20, no_players=5):
+    def __init__(self, w=20, h=20, no_players=3):
         self._canvas = [[0]*w for i in range(h)]
         self.no_players = no_players
         self.players = []
