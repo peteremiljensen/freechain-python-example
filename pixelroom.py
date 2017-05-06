@@ -8,6 +8,9 @@ from cmd import Cmd
 from canvas import *
 from blockchain.node import *
 
+import rsa
+from base64 import b64encode, b64decode
+
 #                   _
 #                  (_)
 #   _ __ ___   __ _ _ _ __
@@ -30,23 +33,41 @@ port = args.port
 file = args.file
 
 def loaf_validator(loaf):
+    if 'type' not in loaf._loaf['data'].keys():
+        print(fail('Loaf has no type'))
+        return
     hash_calc = loaf.calculate_hash()
-    keys = ['color', 'name', 'type', 'x', 'y']
+    new_keys = ['game', 'width', 'height', 'max_players', 'type']
+    add_keys = ['game', 'name', 'pubkey', 'color', 'type']
+    update_keys = ['game', 'name', 'pubkey', 'x', 'y', 'type']
     try:
-        if set(keys).issubset(loaf._loaf['data'].keys()):
+        if (loaf._loaf['data']['type'] == 'new_game' and
+            set(new_keys).issubset(loaf._loaf['data'].keys()) and
+            loaf._loaf['data']['game'] != 'null' and
+            type(loaf._loaf['data']['width']) == int and
+            type(loaf._loaf['data']['height']) == int and
+            type(loaf._loaf['data']['max_players']) == int):
+            return loaf.get_hash() == hash_calc
 
-            if loaf._loaf['data']['type'] == 'add_player' and \
-               type(loaf._loaf['data']['name'])  == str:
-                return loaf.get_hash() == hash_calc
+        elif (loaf._loaf['data']['type'] == 'add_player' and
+              set(add_keys).issubset(loaf._loaf['data'].keys()) and
+              loaf._loaf['data']['game'] != 'null' and
+              loaf._loaf['data']['name'] != 'null' and
+              loaf._loaf['data']['pubkey'] != 'null' and
+              loaf._loaf['data']['color'] != 'null'):
+            return loaf.get_hash() == hash_calc
 
-            elif loaf._loaf['data']['type'] == 'update_pixel' and \
-                 type(loaf._loaf['data']['color']) == str     and \
-                 type(loaf._loaf['data']['name'])  == str     and \
-                 type(loaf._loaf['data']['x'])     == int     and \
-                 type(loaf._loaf['data']['y'])     == int:
-                return loaf.get_hash() == hash_calc
+        elif (loaf._loaf['data']['type'] == 'update_pixel' and
+              set(update_keys).issubset(loaf._loaf['data'].keys()) and
+              loaf._loaf['data']['game'] != 'null' and
+              loaf._loaf['data']['name'] != 'null' and
+              loaf._loaf['data']['pubkey'] != 'null' and
+              type(loaf._loaf['data']['x']) == int and
+              type(loaf._loaf['data']['y']) == int):
+            return loaf.get_hash() == hash_calc
+
         else:
-            print('Mandatory keys for loaf data are not present')
+            print(fail('loaf could not validate'))
             return False
     except:
         print('exception in loaf validation')
@@ -70,13 +91,20 @@ def mine(loaves, prev_block):
         return None
 
 def consensus_check(local_length, rec_length):
-    return True
+    if local_length < rec_length:
+        return True
+    else:
+        return False
 
 def consensus(chain1, chain2):
-    return chain2
+    if chain1.get_length() < chain2.get_length():
+        return chain2
+    else:
+        return chain1
 
 class Prompt(Cmd):
-    PRINTS = ['players', 'loaf_pool', 'mined_loaves', 'blockchain']
+    PRINTS = ['players', 'loaf_pool', 'mined_loaves', 'blockchain', 'games',
+              'current_game']
 
     def __init__(self):
         ''' Prompt class constructor
@@ -95,9 +123,9 @@ class Prompt(Cmd):
 
         self._procesed_height = 0
 
-        self.game = Canvas()
+        self.game = None
+        self.games = {}
         self.name = None
-        self.color = None
 
         if file and os.path.exists(self._file):
             chain = Chain.read_chain(self._file)
@@ -113,8 +141,6 @@ class Prompt(Cmd):
                                   'read from file, could not be added. '))
                     self.do_quit(args)
             self._procesed_height = self.proces_chain(self._procesed_height)
-
-
 
         self._node.start()
 
@@ -137,20 +163,8 @@ class Prompt(Cmd):
             else:
                 self._node.connect_node(ip)
             time.sleep(0.5)
-            self.game.players = []
             self._procesed_height = 0
             self._procesed_height = self.proces_chain(self._procesed_height)
-            if self.game.add_player_check(self.name):
-                self.do_mine('')
-            else:
-                hashes = []
-                with self._node._loaf_pool_lock:
-                    for loaf in self._node._loaf_pool.values():
-                        if loaf._loaf['data']['name'] == self.name and \
-                           loaf._loaf['data']['type'] == 'add_player':
-                            hashes.append(loaf.get_hash())
-                    for hash in hashes:
-                        del self._node._loaf_pool[hash]
         except:
             print(fail('error connecting to node'))
             raise
@@ -174,37 +188,35 @@ class Prompt(Cmd):
         return True
 
     def proces_loaf(self, loaf):
-        if loaf._loaf['data']['type'] == 'add_player':
+        if loaf._loaf['data']['type'] == 'new_game':
+            game_name = loaf._loaf['data']['game']
+            width = loaf._loaf['data']['width']
+            height = loaf._loaf['data']['height']
+            max_players = loaf._loaf['data']['max_players']
+            self.games[game_name] = Canvas(width, height, max_players)
+            print(info('Created game: ' + game_name))
+
+        elif loaf._loaf['data']['type'] == 'add_player':
+            game = self.games[loaf._loaf['data']['game']]
+            color = loaf._loaf['data']['color']
             name = loaf._loaf['data']['name']
-            if not self.game.add_player(name):
-                print('failed to add player:', name)
+            if not game.add_player(name, color):
+                print(fail('failed to add player:'))
                 return False
-            print(name, 'added to game')
+            print(info('player ' + name + ' added to game:'))
 
         elif loaf._loaf['data']['type'] == 'update_pixel':
-            color = loaf._loaf['data']['color']
+            game = self.games[loaf._loaf['data']['game']]
             name = loaf._loaf['data']['name']
             x = loaf._loaf['data']['x']
             y = loaf._loaf['data']['y']
-            if not self.game.update_pixel(color, name, x, y):
-                print('failed to update pixel')
+            if not game.update_pixel(name, x, y):
+                print(fail('failed to update pixel'))
                 return False
         else:
             print('loaf has undefined type')
             return False
         return True
-
-    def join_game(self):
-        if self.game.add_player_check(self.name):
-            try:
-                loaf = Loaf({'color' : "none", 'name' : self.name,
-                             'type' : 'add_player', 'x': "none",
-                             'y' : "none"})
-                if self._node.add_loaf(loaf):
-                    self.do_mine('')
-            except:
-                print('exception join_game')
-                raise
 
     def do_mine(self, args):
         ''' Reads argument and tries to mine block. if block is mined,
@@ -234,38 +246,98 @@ class Prompt(Cmd):
             print(fail('error trying to mine'))
             raise
 
-    def do_change_color(self, args):
+    def do_new_game(self, args):
         l = args.split()
-        if len(l) == 1:
-            self.color = l[0]
-        else:
-            print('Invalid number of arguments')
-
-    def do_draw(self, args):
-        l = args.split()
-        if len(l) != 2:
-            print(fail('invalid number of arguments'))
+        if len(l) != 4:
+            print(fail('Invalid number of arguments'))
+            print(fail('Args: <game> <width> <height> <max_players> '))
             return
-        if self.game.update_pixel_check(self.color, self.name, int(l[0]), int(l[1])):
+
+        if l[0] in self.games.keys():
+            print(fail('Game already exists'))
+            return
+        try:
+            loaf = Loaf({'game' : l[0], 'height' : int(l[2]),
+                         'width' : int(l[1]), 'max_players' : int(l[3]),
+                         'type' : 'new_game'})
+            if self._node.add_loaf(loaf):
+                self.do_mine('')
+            else:
+                print(fail('failed to add loaf to loaf pool'))
+        except:
+            print(fail('error creating and broadcasting loaf'))
+            raise
+
+        self.game = l[0]
+
+    def do_change_game(self, args):
+        l = args.split()
+        if len(l) != 1:
+            print(fail('invalid number of arguments. args: <game> <name> <color>'))
+            return
+        if l[0] in self.games.keys():
+            self.game = l[0]
+        else:
+            print(warning('game' + l[0] + 'does not eist'))
+            return
+
+    def do_join_game(self, args):
+        l = args.split()
+        if len(l) != 1:
+            print(fail('invalid number of arguments. args: <game> <name> <color>'))
+            return
+        if l[0] in self.games.keys():
+            game = self.games[l[0]]
+        else:
+            print(warning('game', + l[0] + 'does not eist'))
+            return
+        self.name = input('Name: ')
+        color = input('Color: ')
+        if game.add_player_check(self.name, color):
             try:
-                loaf = Loaf({'color' : self.color, 'name' : self.name,
-                             'type' : 'update_pixel', 'x': int(l[0]),
-                             'y' : int(l[1])})
+                loaf = Loaf({'color' : color, 'game' : l[0], 'name' : self.name,
+                             'pubkey': 123, 'type' : 'add_player'})
                 if self._node.add_loaf(loaf):
                     self.do_mine('')
-                    self.game.print_canvas()
+                    self.games[self.game].print_canvas()
                 else:
                     print(fail('failed to add loaf to loaf pool'))
             except:
                 print(fail('error creating and broadcasting loaf'))
                 raise
+
+        self.game = l[0]
+
+    def do_draw(self, args):
+        l = args.split()
+        if len(l) != 2:
+            print(fail('invalid number of arguments. Args: <game> <x> <y>'))
+            return
+        game_name = self.game
+        name = self.name
+        if self.games[game_name].update_pixel_check(name, int(l[0]), int(l[1])):
+            try:
+                loaf = Loaf({'game' : game_name, 'name' : self.name, 'pubkey' : 123,
+                             'x': int(l[0]), 'y' : int(l[1]),
+                             'type' : 'update_pixel'})
+                if self._node.add_loaf(loaf):
+                    self.do_mine('')
+                    self.games[self.game].print_canvas()
+                else:
+                    print(fail('failed to add loaf to loaf pool'))
+            except:
+                print(fail('error creating and broadcasting loaf'))
+                raise
+
+
+
     def do_z(self, args):
         self._procesed_height = self.proces_chain(self._procesed_height)
         l = args.split()
         if len(l) != 0:
             print (fail('doesnt take any arguments'))
             return
-        self.game.print_canvas()
+        self.games[self.game].print_canvas()
 
     def do_print(self, args):
         ''' Prints loaf pool or blockchain
@@ -274,7 +346,7 @@ class Prompt(Cmd):
         self._procesed_height = self.proces_chain(self._procesed_height)
         try:
             if l[0] == self.PRINTS[0]:
-                print(self.game.players)
+                print(self.games[self.game].players)
             elif l[0] == self.PRINTS[1]:
                 for loaf in list(self._node._loaf_pool.values()):
                     print(loaf.json())
@@ -282,6 +354,10 @@ class Prompt(Cmd):
                 print(self._node._mined_loaves)
             elif l[0] == self.PRINTS[3]:
                 print(self._node._chain.json())
+            elif l[0] == self.PRINTS[4]:
+                print(list(self.games.keys()))
+            elif l[0] == self.PRINTS[5]:
+                print(self.game)
             else:
                 print(fail(l[0] + ' does not exist'))
 
@@ -326,9 +402,6 @@ if __name__ == '__main__':
     prompt = Prompt()
     prompt.prompt = '(freechain) '
     try:
-        prompt.name = input('Enter name: ')
-        prompt.color = input('Enter color: ')
-        prompt.join_game()
         prompt.cmdloop(info('Starting node on port ' + str(port) + '...'))
     except KeyboardInterrupt:
         prompt.do_quit(None)
