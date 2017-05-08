@@ -21,14 +21,18 @@ class Canvas():
                        'black', 'magenta', 'cyan']
         self.players = {}
 
-    def add_player(self, name, color):
+    def add_player(self, name, color, pubkey):
         if len(self.players) >= self.max_players:
             print('Game is full')
             return False
         if name in self.players.keys():
             print('Name is already taken')
             return False
-        self.players[name] = color
+        for player in self.players.keys():
+            if self.players[player]['color'] == color:
+                print(warning('color already taken'))
+                return False
+        self.players[name] = {'color' : color, 'pubkey' : pubkey}
         return True
 
     def add_player_check(self, name, color):
@@ -38,9 +42,10 @@ class Canvas():
         if name in self.players.keys():
             print(warning('name already taken'))
             return False
-        if color in self.players.values():
-            print(warning('color already taken'))
-            return False
+        for player in self.players.keys():
+            if self.players[player]['color'] == color:
+                print(warning('color already taken'))
+                return False
         return True
 
     def update_pixel(self, name, x, y):
@@ -48,7 +53,7 @@ class Canvas():
             print('Player is not a part of the game')
             return False
         try:
-            self._canvas[x][y] = self.players[name]
+            self._canvas[x][y] = self.players[name]['color']
         except IndexError:
             print('Coordinates are out of bounds')
             return False
@@ -58,13 +63,13 @@ class Canvas():
         if name not in self.players:
             print(warning('Player is not a part of the game'))
             return False
-        if self.players[name] not in self.colors:
+        if self.players[name]['color'] not in self.colors:
             print(warning('unknown color: ' + color))
         try:
             if self._canvas[x][y] != 0:
                 print(warning('Pixel already painted'))
                 return False
-            self._canvas[x][y] = self.players[name]
+            self._canvas[x][y] = self.players[name]['color']
             self._canvas[x][y] = 0
         except IndexError:
             print(warning('Coordinates are out of bounds'))

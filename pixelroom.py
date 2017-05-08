@@ -8,8 +8,8 @@ from cmd import Cmd
 from canvas import *
 from blockchain.node import *
 
-import rsa
-from base64 import b64encode, b64decode
+import rsakeys
+import hashlib
 
 #                   _
 #                  (_)
@@ -24,13 +24,21 @@ parser = argparse.ArgumentParser(description='program for testing of ' +
                                              'blockchain framework')
 parser.add_argument('-p', '--port', nargs='?', default='9000',
                     help='Port for the node to use')
-parser.add_argument('-f', '--file', nargs='?',
+parser.add_argument('-c', '--chain', nargs='?',
                     help='Path to file containing a blockchain to load' +
                     'if the file does not eists, one is created')
+parser.add_argument('-r', '--privkey', nargs='?',
+                    help='Path to private key. If the file does not exist' +
+                    'one is created')
+parser.add_argument('-u', '--pubkey', nargs='?',
+                    help='Path to public key. If the file does not exist' +
+                    'one is created')
 
 args = parser.parse_args()
 port = args.port
-file = args.file
+chain_path = args.chain
+privkey_path = args.privkey
+pubkey_path = args.pubkey
 
 def loaf_validator(loaf):
     if 'type' not in loaf._loaf['data'].keys():
@@ -38,8 +46,8 @@ def loaf_validator(loaf):
         return
     hash_calc = loaf.calculate_hash()
     new_keys = ['game', 'width', 'height', 'max_players', 'type']
-    add_keys = ['game', 'name', 'pubkey', 'color', 'type']
-    update_keys = ['game', 'name', 'pubkey', 'x', 'y', 'type']
+    add_keys = ['game', 'name', 'pubkey', 'color', 'type', 'sig']
+    update_keys = ['game', 'name', 'sig', 'x', 'y', 'type']
     try:
         if (loaf._loaf['data']['type'] == 'new_game' and
             set(new_keys).issubset(loaf._loaf['data'].keys()) and
@@ -54,14 +62,15 @@ def loaf_validator(loaf):
               loaf._loaf['data']['game'] != 'null' and
               loaf._loaf['data']['name'] != 'null' and
               loaf._loaf['data']['pubkey'] != 'null' and
-              loaf._loaf['data']['color'] != 'null'):
+              loaf._loaf['data']['color'] != 'null' and
+              loaf._loaf['data']['sig'] != 'null'):
             return loaf.get_hash() == hash_calc
 
         elif (loaf._loaf['data']['type'] == 'update_pixel' and
               set(update_keys).issubset(loaf._loaf['data'].keys()) and
               loaf._loaf['data']['game'] != 'null' and
               loaf._loaf['data']['name'] != 'null' and
-              loaf._loaf['data']['pubkey'] != 'null' and
+              loaf._loaf['data']['sig'] != 'null' and
               type(loaf._loaf['data']['x']) == int and
               type(loaf._loaf['data']['y']) == int):
             return loaf.get_hash() == hash_calc
@@ -112,7 +121,9 @@ class Prompt(Cmd):
         super().__init__()
 
         self._port = port
-        self._file = file
+        self._chainfile = chain_path
+        self._privkey_path = privkey_path
+        self._pubkey_path = pubkey_path
         self._node = Node(self._port)
         genesis_block = Block.create_block_from_dict(
             {"hash":"00001620395c8da353f5005e713fe2fee85ad63c618ad01b7dd712bc5f4cc56d",
@@ -126,12 +137,34 @@ class Prompt(Cmd):
         self.game = None
         self.games = {}
         self.name = None
+        self.browsing = 0
 
-        if file and os.path.exists(self._file):
-            chain = Chain.read_chain(self._file)
+        if privkey_path and pubkey_path:
+            if (os.path.exists(privkey_path) and
+                os.path.exists(pubkey_path)):
+                self._privkey, self._pubkey = rsakeys.read_keys(privkey_path, pubkey_path)
+                try:
+                    test = rsakeys.check_keys(self._privkey, self._pubkey)
+                except:
+                    print(fail('exception in key checking'))
+                    self.browsing = 1
+                    test = False
+                if not test:
+                    print(fail('keys do not match'))
+                    self.browsing = 1
+            else:
+                self._privkey, self._pubkey = rsakeys.generate_keys()
+                rsakeys.write_keys(self._privkey, self._pubkey,
+                                   self._privkey_path, self._pubkey_path)
+        else:
+            print(warning('browsing mode enabled'))
+            self.browsing = 1
+
+        if self._chainfile and os.path.exists(self._chainfile):
+            chain = Chain.read_chain(self._chainfile)
 
             if not chain.validate():
-                self._file = None
+                self._chainfile = None
                 print(fail('Loaded blockchain is not valid'))
                 self.do_quit(args)
 
@@ -169,6 +202,12 @@ class Prompt(Cmd):
             print(fail('error connecting to node'))
             raise
 
+    def read_keys(self, priv_path, pub_path):
+        return rsakeys.read_keys(priv_path, pub_path)
+
+    def save_keys(self, privkey, pubkey, priv_path, pub_path):
+        rsakeys.write_keys(privkey, pubkey, priv_path, pub_path)
+
     def proces_chain(self, height):
         if not height < self._node._chain.get_length() - 1:
             return height
@@ -193,6 +232,9 @@ class Prompt(Cmd):
             width = loaf._loaf['data']['width']
             height = loaf._loaf['data']['height']
             max_players = loaf._loaf['data']['max_players']
+            if game_name in self.games.keys():
+                print(fail('game already exists'))
+                return False
             self.games[game_name] = Canvas(width, height, max_players)
             print(info('Created game: ' + game_name))
 
@@ -200,16 +242,29 @@ class Prompt(Cmd):
             game = self.games[loaf._loaf['data']['game']]
             color = loaf._loaf['data']['color']
             name = loaf._loaf['data']['name']
-            if not game.add_player(name, color):
+            signature = loaf._loaf['data']['sig']
+            pubkey = rsakeys.import_key(loaf._loaf['data']['pubkey'].encode('utf-8'))
+            hashed_name = hashlib.md5(name.encode('utf-8')).digest()
+            if not rsakeys.validate(pubkey, hashed_name, signature):
+                print(fail('Failed to verify message'))
+                return False
+            if not game.add_player(name, color, pubkey):
                 print(fail('failed to add player:'))
                 return False
             print(info('player ' + name + ' added to game:'))
 
         elif loaf._loaf['data']['type'] == 'update_pixel':
             game = self.games[loaf._loaf['data']['game']]
+            game_name = loaf._loaf['data']['game']
             name = loaf._loaf['data']['name']
+            signature = loaf._loaf['data']['sig']
             x = loaf._loaf['data']['x']
             y = loaf._loaf['data']['y']
+            hashed_name = hashlib.md5(name.encode('utf-8')).digest()
+            pubkey = self.games[game_name].players[name]['pubkey']
+            if not rsakeys.validate(pubkey, hashed_name, signature):
+                print(fail('Failed to verify message'))
+                return False
             if not game.update_pixel(name, x, y):
                 print(fail('failed to update pixel'))
                 return False
@@ -247,6 +302,9 @@ class Prompt(Cmd):
             raise
 
     def do_new_game(self, args):
+        if self.browsing == 1:
+            print(fail('a keypair is needed to interfere with the game'))
+            return
         l = args.split()
         if len(l) != 4:
             print(fail('Invalid number of arguments'))
@@ -282,21 +340,32 @@ class Prompt(Cmd):
             return
 
     def do_join_game(self, args):
+        if self.browsing == 1:
+            print(fail('a keypair is needed to interfere with the game'))
+            return
         l = args.split()
         if len(l) != 1:
-            print(fail('invalid number of arguments. args: <game> <name> <color>'))
+            print(fail('invalid number of arguments. args: <game>'))
             return
         if l[0] in self.games.keys():
+            self.game = l[0]
             game = self.games[l[0]]
         else:
-            print(warning('game', + l[0] + 'does not eist'))
+            print(warning('game ' + l[0] + ' does not eist'))
             return
+        for player in self.games[self.game].players.keys():
+            if self.games[self.game].players[player]['pubkey'] == self._pubkey:
+                print(fail('you are already in this game as ' + self.name))
+                return
         self.name = input('Name: ')
         color = input('Color: ')
         if game.add_player_check(self.name, color):
+            pubkey = rsakeys.export_key(self._pubkey).decode('utf-8')
             try:
                 loaf = Loaf({'color' : color, 'game' : l[0], 'name' : self.name,
-                             'pubkey': 123, 'type' : 'add_player'})
+                             'pubkey': pubkey,
+                             'sig' : rsakeys.sign(self._privkey, self.name),
+                             'type' : 'add_player'})
                 if self._node.add_loaf(loaf):
                     self.do_mine('')
                     self.games[self.game].print_canvas()
@@ -306,18 +375,24 @@ class Prompt(Cmd):
                 print(fail('error creating and broadcasting loaf'))
                 raise
 
-        self.game = l[0]
-
     def do_draw(self, args):
+        if self.browsing == 1:
+            print(fail('a keypair is needed to interfere with the game'))
+            return
         l = args.split()
         if len(l) != 2:
             print(fail('invalid number of arguments. Args: <game> <x> <y>'))
             return
-        game_name = self.game
-        name = self.name
+        if self.game and self.name:
+            game_name = self.game
+            name = self.name
+        else:
+            print(fail('name or game not assigned'))
+            return
         if self.games[game_name].update_pixel_check(name, int(l[0]), int(l[1])):
             try:
-                loaf = Loaf({'game' : game_name, 'name' : self.name, 'pubkey' : 123,
+                loaf = Loaf({'game' : game_name, 'name' : self.name,
+                             'sig' : rsakeys.sign(self._privkey, self.name),
                              'x': int(l[0]), 'y' : int(l[1]),
                              'type' : 'update_pixel'})
                 if self._node.add_loaf(loaf):
@@ -337,6 +412,9 @@ class Prompt(Cmd):
         if len(l) != 0:
             print (fail('doesnt take any arguments'))
             return
+        if self.game == None:
+            print(warning('not in a game'))
+            return
         self.games[self.game].print_canvas()
 
     def do_print(self, args):
@@ -346,6 +424,9 @@ class Prompt(Cmd):
         self._procesed_height = self.proces_chain(self._procesed_height)
         try:
             if l[0] == self.PRINTS[0]:
+                if not self.game:
+                    print(fail('not in a game'))
+                    return
                 print(self.games[self.game].players)
             elif l[0] == self.PRINTS[1]:
                 for loaf in list(self._node._loaf_pool.values()):
@@ -357,6 +438,9 @@ class Prompt(Cmd):
             elif l[0] == self.PRINTS[4]:
                 print(list(self.games.keys()))
             elif l[0] == self.PRINTS[5]:
+                if not self.game:
+                    print(fail('not in a game'))
+                    return
                 print(self.game)
             else:
                 print(fail(l[0] + ' does not exist'))
@@ -381,8 +465,8 @@ class Prompt(Cmd):
     def do_quit(self, args):
         ''' Quits program
         '''
-        if self._file:
-            Chain.save_chain(self._file, self._node._chain)
+        if self._chainfile:
+            Chain.save_chain(self._chainfile, self._node._chain)
         print(info('Quitting'))
         raise SystemExit
 
