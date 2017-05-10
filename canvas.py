@@ -12,14 +12,18 @@ colors = {'red'     : Back.RED + '  ' + Back.RESET,
            0        : Back.BLACK + '  ' + Back.RESET}
 
 class Canvas():
-    def __init__(self, width, height, max_players):
+    def __init__(self, width, height, max_players, win, admin):
         self.width = width
         self.height = height
         self.max_players = max_players
+        self.admin = admin
         self._canvas = [[0]*self.width for i in range(self.height)]
         self.colors = ['red', 'green', 'blue', 'yellow', 'white',
                        'black', 'magenta', 'cyan']
         self.players = {}
+        self.status = 0
+        self.winner = None
+        self.next_turn = None
 
     def add_player(self, name, color, pubkey):
         if len(self.players) >= self.max_players:
@@ -49,22 +53,42 @@ class Canvas():
         return True
 
     def update_pixel(self, name, x, y):
-        if name not in self.players:
-            print('Player is not a part of the game')
+        if self.status == -1:
+            print(warning('game is over'))
+            return False
+        if self.status == 0:
+            print(warning('game has not started yet'))
+            return False
+        if not name == self.next_turn:
+            print(warning('not your turn'))
+            cur = str(self.current_turn())
+            print(info('current turn: ' + cur))
             return False
         try:
             self._canvas[x][y] = self.players[name]['color']
         except IndexError:
             print('Coordinates are out of bounds')
             return False
+        self.next()
         return True
 
     def update_pixel_check(self, name, x, y):
+        if self.status == -1:
+            print(warning('game is over'))
+            return False
+        if self.status == 0:
+            print(warning('game has not started yet'))
+            return False
         if name not in self.players:
             print(warning('Player is not a part of the game'))
             return False
         if self.players[name]['color'] not in self.colors:
             print(warning('unknown color: ' + color))
+        if not name == self.next_turn:
+            print(warning('not your turn'))
+            cur = str(self.current_turn())
+            print(info('current turn: ' + cur))
+            return False
         try:
             if self._canvas[x][y] != 0:
                 print(warning('Pixel already painted'))
@@ -75,6 +99,33 @@ class Canvas():
             print(warning('Coordinates are out of bounds'))
             return False
         return True
+
+    def start_game(self):
+        if self.status == -1:
+            print(warning('game is over'))
+        if self.status == 1:
+            print(warning('game is already running'))
+        else:
+            self.next_turn = list(self.players.keys())[0]
+            self.status = 1
+            print(info('game has started'))
+            cur = str(self.current_turn())
+            print(info('current turn: ' + cur))
+
+#    def check_board():
+
+    def next(self):
+        player_index = list(self.players.keys()).index(self.next_turn) + 1
+        if player_index == len(self.players.keys()):
+            self.next_turn = list(self.players.keys())[0]
+        else:
+            self.next_turn = list(self.players.keys())[player_index]
+
+    def current_turn(self):
+        if self.next_turn:
+            return self.next_turn
+        else:
+            print(warning('game has not started yet'))
 
     def print_canvas(self):
         for row in self._canvas:
