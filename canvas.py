@@ -112,7 +112,13 @@ class Canvas():
             cur = str(self.current_turn())
             print(info('current turn: ' + cur))
 
-#    def check_board():
+    def check_board():
+        for i in range(self.height):
+            for j in range(self.width):
+                if self._canvas[i][j] == 0:
+                    break
+                color = self._canvas[i][j]
+
 
     def next(self):
         player_index = list(self.players.keys()).index(self.next_turn) + 1
@@ -136,3 +142,4 @@ class Canvas():
                 except:
                     print(colors[0], end='')
         print('\n')
+        print(self._canvas)
