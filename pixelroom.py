@@ -46,7 +46,7 @@ else:
     pubkey_path = args.pubkey
 
 def loaf_validator(loaf):
-    if 'type' not in loaf._loaf['data'].keys():
+    if 'type' not in loaf.get_data().keys():
         print(fail('Loaf has no type'))
         return
     hash_calc = loaf.calculate_hash()
@@ -55,36 +55,36 @@ def loaf_validator(loaf):
     start_keys = ['game', 'type']
     update_keys = ['game', 'name', 'sig', 'x', 'y', 'type']
     try:
-        if (loaf._loaf['data']['type'] == 'new_game' and
-            set(new_keys).issubset(loaf._loaf['data'].keys()) and
-            loaf._loaf['data']['game'] != 'null' and
-            type(loaf._loaf['data']['width']) == int and
-            type(loaf._loaf['data']['height']) == int and
-            type(loaf._loaf['data']['max_players']) == int and
-            loaf._loaf['data']['name'] != 'null' and
-            type(loaf._loaf['data']['win'] == int)):
+        if (loaf['type'] == 'new_game' and
+            set(new_keys).issubset(loaf.get_data().keys()) and
+            loaf['game'] != 'null' and
+            type(loaf['width'])  == int and
+            type(loaf['height']) == int and
+            type(loaf['max_players']) == int and
+            loaf['name'] != 'null' and
+            type(loaf['win'] == int)):
             return loaf.get_hash() == hash_calc
 
-        elif (loaf._loaf['data']['type'] == 'add_player' and
-              set(add_keys).issubset(loaf._loaf['data'].keys()) and
-              loaf._loaf['data']['game'] != 'null' and
-              loaf._loaf['data']['name'] != 'null' and
-              loaf._loaf['data']['pubkey'] != 'null' and
-              loaf._loaf['data']['color'] != 'null' and
-              loaf._loaf['data']['sig'] != 'null'):
+        elif (loaf['type'] == 'add_player' and
+              set(add_keys).issubset(loaf.get_data().keys()) and
+              loaf['game']   != 'null' and
+              loaf['name']   != 'null' and
+              loaf['pubkey'] != 'null' and
+              loaf['color']  != 'null' and
+              loaf['sig']    != 'null'):
             return loaf.get_hash() == hash_calc
 
-        elif (loaf._loaf['data']['type'] == 'start_game' and
-              loaf._loaf['data']['game'] != 'null'):
+        elif (loaf['type'] == 'start_game' and
+              loaf['game'] != 'null'):
             return loaf.get_hash() == hash_calc
 
-        elif (loaf._loaf['data']['type'] == 'update_pixel' and
-              set(update_keys).issubset(loaf._loaf['data'].keys()) and
-              loaf._loaf['data']['game'] != 'null' and
-              loaf._loaf['data']['name'] != 'null' and
-              loaf._loaf['data']['sig'] != 'null' and
-              type(loaf._loaf['data']['x']) == int and
-              type(loaf._loaf['data']['y']) == int):
+        elif (loaf['type'] == 'update_pixel' and
+              set(update_keys).issubset(loaf.get_data().keys()) and
+              loaf['game'] != 'null' and
+              loaf['name'] != 'null' and
+              loaf['sig'] != 'null' and
+              type(loaf['x']) == int and
+              type(loaf['y']) == int):
             return loaf.get_hash() == hash_calc
 
         else:
@@ -144,7 +144,7 @@ class Prompt(Cmd):
              "height":0, "loaves":[], "data":"",
              "previous_block_hash":"-1",
              "timestamp":"2017-05-01 15:19:56.585873"})
-        self._node._chain._chain = [genesis_block]
+        self._node.add_block(genesis_block)
 
         self._procesed_height = 0
 
@@ -242,25 +242,25 @@ class Prompt(Cmd):
         return True
 
     def proces_loaf(self, loaf):
-        if loaf._loaf['data']['type'] == 'new_game':
-            game_name = loaf._loaf['data']['game']
-            width = loaf._loaf['data']['width']
-            height = loaf._loaf['data']['height']
-            max_players = loaf._loaf['data']['max_players']
-            win = loaf._loaf['data']['win']
-            admin = loaf._loaf['data']['name']
+        if loaf['type'] == 'new_game':
+            game_name = loaf['game']
+            width  = loaf['width']
+            height = loaf['height']
+            max_players = loaf['max_players']
+            win   = loaf['win']
+            admin = loaf['name']
             if game_name in self.games.keys():
                 print(fail('game already exists'))
                 return False
             self.games[game_name] = Canvas(width, height, max_players, win, admin)
             print(info('Created game: ' + game_name))
 
-        elif loaf._loaf['data']['type'] == 'add_player':
-            game = self.games[loaf._loaf['data']['game']]
-            color = loaf._loaf['data']['color']
-            name = loaf._loaf['data']['name']
-            signature = loaf._loaf['data']['sig']
-            pubkey = rsakeys.import_key(loaf._loaf['data']['pubkey'].encode('utf-8'))
+        elif loaf['type'] == 'add_player':
+            game  = self.games[loaf['game']]
+            color = loaf['color']
+            name  = loaf['name']
+            signature = loaf['sig']
+            pubkey    = rsakeys.import_key(loaf['pubkey'].encode('utf-8'))
             hashed_name = hashlib.md5(name.encode('utf-8')).digest()
             if not rsakeys.validate(pubkey, hashed_name, signature):
                 print(fail('Failed to verify message'))
@@ -270,17 +270,17 @@ class Prompt(Cmd):
                 return False
             print(info('player ' + name + ' added to game:'))
 
-        elif loaf._loaf['data']['type'] == 'start_game':
-            game = self.games[loaf._loaf['data']['game']]
+        elif loaf['type'] == 'start_game':
+            game = self.games[loaf['game']]
             game.start_game()
 
-        elif loaf._loaf['data']['type'] == 'update_pixel':
-            game = self.games[loaf._loaf['data']['game']]
-            game_name = loaf._loaf['data']['game']
-            name = loaf._loaf['data']['name']
-            signature = loaf._loaf['data']['sig']
-            x = loaf._loaf['data']['x']
-            y = loaf._loaf['data']['y']
+        elif loaf['type'] == 'update_pixel':
+            game = self.games[loaf['game']]
+            game_name = loaf['game']
+            name = loaf['name']
+            signature = loaf['sig']
+            x = loaf['x']
+            y = loaf['y']
             hashed_name = hashlib.md5(name.encode('utf-8')).digest()
             pubkey = self.games[game_name].players[name]['pubkey']
             if not rsakeys.validate(pubkey, hashed_name, signature):
@@ -304,15 +304,15 @@ class Prompt(Cmd):
             return
         try:
             loaves = self._node.get_loaves()
-            chain_length = self._node._chain.get_length()
-            prev_block = self._node._chain.get_block(chain_length-1)
+            chain_length = self._node.get_chain().get_length()
+            prev_block = self._node.get_chain().get_block(chain_length-1)
             block = mine(loaves, prev_block)
             if block is None:
                 print(fail('failed to mine block'))
             else:
                 if self._node.add_block(block):
                     self._procesed_height = self.proces_chain(self._procesed_height)
-                    if self._procesed_height == self._node._chain.get_length() - 1:
+                    if self._procesed_height == self._node.get_chain().get_length() - 1:
                         self._node.broadcast_block(block)
                     else:
                         print('failed to proces chain')
