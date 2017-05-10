@@ -4,6 +4,7 @@ import datetime
 import time
 import argparse
 from cmd import Cmd
+from colorama import Fore
 
 from canvas import *
 from blockchain.node import *
@@ -406,6 +407,7 @@ class Prompt(Cmd):
             print(fail('not in a game'))
             return
         name = self.name
+        self.games[game_name].check_board
         try:
             if self.games[game_name].update_pixel_check(name, int(l[0]), int(l[1])):
                 loaf = Loaf({'game' : game_name, 'name' : self.name,
@@ -427,6 +429,10 @@ class Prompt(Cmd):
         else:
             print(fail('not in a game'))
             return
+        if self.games[game_name].status == -1:
+            print(warning('game is over'))
+        if self.games[game_name].status == 1:
+            print(warning('game is already running'))
         if self.games[game_name].admin == self.name:
             check_pubkey = self.games[game_name].players[self.name]['pubkey']
             if rsakeys.check_keys(self._privkey, check_pubkey):
@@ -463,7 +469,24 @@ class Prompt(Cmd):
                 if not self.game:
                     print(fail('not in a game'))
                     return
-                print(self.games[self.game].players)
+                res = "[ "
+                for player in self.games[self.game].players:
+                    if self.games[self.game].players[player]['color'] == 'red':
+                        res = res + Fore.RED + ' ' + player + Fore.RESET + ','
+                    elif self.games[self.game].players[player]['color'] == 'green':
+                        res = res + Fore.GREEN + ' ' + player + Fore.RESET + ','
+                    elif self.games[self.game].players[player]['color'] == 'blue':
+                        res = res + Fore.BLUE + ' ' + player + Fore.RESET + ','
+                    elif self.games[self.game].players[player]['color'] == 'yellow':
+                        res = res + Fore.YELLOW + ' ' + player + Fore.RESET + ','
+                    elif self.games[self.game].players[player]['color'] == 'white':
+                        res = res + Fore.WHITE + ' ' + player + Fore.RESET + ','
+                    elif self.games[self.game].players[player]['color'] == 'magenta':
+                        res = res + Fore.MAGENTA + ' ' + player + Fore.RESET + ','
+                    elif self.games[self.game].players[player]['color'] == 'cyan':
+                        res = res + Fore.CYAN + ' ' + player + Fore.RESET + ','
+                res = res[:-1] + "  ]"
+                print(res)
             elif l[0] == self.PRINTS[1]:
                 for loaf in list(self._node._loaf_pool.values()):
                     print(loaf.json())
@@ -472,12 +495,26 @@ class Prompt(Cmd):
             elif l[0] == self.PRINTS[3]:
                 print(self._node._chain.json())
             elif l[0] == self.PRINTS[4]:
-                print(list(self.games.keys()))
+                res = "[ "
+                for game in list(self.games.keys()):
+                    if self.games[game].status == -1:
+                        res = res + '\033[91m ' + game + '\033[0m,'
+                    if self.games[game].status == 1:
+                        res = res + '\033[92m ' + game + '\033[0m,'
+                    if self.games[game].status == 0:
+                        res = res + '\033[93m ' + game + '\033[0m,'
+                res = res[:-1] + "  ]"
+                print(res)
             elif l[0] == self.PRINTS[5]:
                 if not self.game:
                     print(fail('not in a game'))
                     return
-                print(self.game)
+                if self.games[self.game].status == -1:
+                    print('\033[91m ' + self.game + '\033[0m')
+                if self.games[self.game].status == 1:
+                    print('\033[92m ' + self.game + '\033[0m')
+                if self.games[self.game].status == 0:
+                    print('\033[93m ' + self.game + '\033[0m')
             elif l[0] == self.PRINTS[6]:
                 turn = self.games[self.game].current_turn()
                 if turn:

@@ -6,16 +6,15 @@ colors = {'red'     : Back.RED + '  ' + Back.RESET,
           'blue'    : Back.BLUE + '  ' + Back.RESET,
           'yellow'  : Back.YELLOW + '  ' + Back.RESET,
           'white'   : Back.WHITE + '  ' + Back.RESET,
-          'black'   : Back.BLACK + '  ' + Back.RESET,
           'magenta' : Back.MAGENTA + '  ' + Back.RESET,
           'cyan'    : Back.CYAN + '  ' + Back.RESET,
            0        : Back.BLACK + '  ' + Back.RESET}
 
 class Canvas():
-    def __init__(self, width, height, max_players, win, admin):
+    def __init__(self, width, height, max_players, wins, admin):
         self.width = width
         self.height = height
-        self.max_players = max_players
+        self.wins = int(wins)
         self.admin = admin
         self._canvas = [[0]*self.width for i in range(self.height)]
         self.colors = ['red', 'green', 'blue', 'yellow', 'white',
@@ -24,6 +23,12 @@ class Canvas():
         self.status = 0
         self.winner = None
         self.next_turn = None
+
+        if max_players not in range(1,8):
+            self.max_players = 7
+            print(warning('number of players is set to 7, which is the maximum'))
+        else:
+            self.max_players = max_players
 
     def add_player(self, name, color, pubkey):
         if len(self.players) >= self.max_players:
@@ -70,6 +75,7 @@ class Canvas():
             print('Coordinates are out of bounds')
             return False
         self.next()
+        self.check_board()
         return True
 
     def update_pixel_check(self, name, x, y):
@@ -112,13 +118,76 @@ class Canvas():
             cur = str(self.current_turn())
             print(info('current turn: ' + cur))
 
-    def check_board():
+    def check_board(self):
         for i in range(self.height):
             for j in range(self.width):
                 if self._canvas[i][j] == 0:
                     break
                 color = self._canvas[i][j]
 
+                ext_r = self.ext_right(i, j)
+                if all(ext_r[i]==color for i in range(len(ext_r))):
+                    self.status = - 1
+                    self.next = None
+                    for player in self.players:
+                        if self.players[player]['color'] == color:
+                            winner = player
+                    print(info('game is over, the winner is: ' + winner))
+
+                ext_dr = self.ext_downright(i, j)
+                if all(ext_dr[i]==color for i in range(len(ext_dr))):
+                    self.status = - 1
+                    self.next = None
+                    for player in self.players:
+                        if self.players[player]['color'] == color:
+                            winner = player
+                    print(info('game is over, the winner is: ' + winner))
+
+                ext_d = self.ext_down(i, j)
+                if all(ext_d[i]==color for i in range(len(ext_d))):
+                    self.status = - 1
+                    self.next = None
+                    for player in self.players:
+                        if self.players[player]['color'] == color:
+                            winner = player
+                    print(info('game is over, the winner is: ' + winner))
+
+                ext_dl = self.ext_downleft(i, j)
+                if all(ext_dl[i]==color for i in range(len(ext_dl))):
+                    self.status = - 1
+                    self.next = None
+                    for player in self.players:
+                        if self.players[player]['color'] == color:
+                            winner = player
+                    print(info('game is over, the winner is: ' + winner))
+
+    def ext_right(self, r, c):
+        if (c + self.wins-1) <= (self.width-1):
+            return self._canvas[r][c:c+self.wins]
+        else:
+            return [0]
+
+    def ext_downright(self, r, c):
+        if (((r + self.wins-1) <= self.height-1) and
+            ((c + self.wins-1) <= self.width-1)):
+            matrix = [self._canvas[r+i][c:c+self.wins] for i in range(self.wins)]
+            return [matrix[i][i] for i in range(self.wins)]
+        else:
+            return [0]
+
+    def ext_down(self, r, c):
+        if (r + self.wins-1) <= (self.height-1):
+            return [row[c] for row in self._canvas[r:r+self.wins][:]]
+        else:
+            return [0]
+
+    def ext_downleft(self, r, c):
+        if (((r + self.wins-1) <= self.height-1) and
+            ((c - self.wins-1) >= 0)):
+            matrix = [self._canvas[r+i][c-(self.wins-1):c+1] for i in range(self.wins)]
+            return [matrix[i][i] for i in list(range(self.wins))[::-1]]
+        else:
+            return [0]
 
     def next(self):
         player_index = list(self.players.keys()).index(self.next_turn) + 1
@@ -142,4 +211,3 @@ class Canvas():
                 except:
                     print(colors[0], end='')
         print('\n')
-        print(self._canvas)
