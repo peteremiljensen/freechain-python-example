@@ -336,10 +336,13 @@ class Prompt(Cmd):
         if l[0] in self.games.keys():
             print(fail('Game already exists'))
             return
+        if int(l[4]) > int(l[3]):
+            print(fail('The win condition is too big for the board'))
+            return
         try:
             loaf = Loaf({'game' : l[0], 'height' : int(l[2]),
                          'width' : int(l[1]), 'max_players' : int(l[3]),
-                         'name' : self.name, 'win' : l[4],
+                         'name' : self.name, 'win' : int(l[4]),
                          'type' : 'new_game'})
             if self._node.add_loaf(loaf):
                 self.do_mine('')

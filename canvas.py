@@ -119,13 +119,17 @@ class Canvas():
             print(info('current turn: ' + cur))
 
     def check_board(self):
+        print(self.height)
+        print(self.width)
         for i in range(self.height):
             for j in range(self.width):
                 if self._canvas[i][j] == 0:
-                    break
+                    continue
                 color = self._canvas[i][j]
+                #print(i, j)
 
                 ext_r = self.ext_right(i, j)
+                #print(ext_r)
                 if all(ext_r[i]==color for i in range(len(ext_r))):
                     self.status = - 1
                     self.next = None
@@ -135,6 +139,7 @@ class Canvas():
                     print(info('game is over, the winner is: ' + winner))
 
                 ext_dr = self.ext_downright(i, j)
+                #print(ext_dr)
                 if all(ext_dr[i]==color for i in range(len(ext_dr))):
                     self.status = - 1
                     self.next = None
@@ -144,6 +149,7 @@ class Canvas():
                     print(info('game is over, the winner is: ' + winner))
 
                 ext_d = self.ext_down(i, j)
+                #print(ext_d)
                 if all(ext_d[i]==color for i in range(len(ext_d))):
                     self.status = - 1
                     self.next = None
@@ -153,6 +159,7 @@ class Canvas():
                     print(info('game is over, the winner is: ' + winner))
 
                 ext_dl = self.ext_downleft(i, j)
+                #print(ext_dl)
                 if all(ext_dl[i]==color for i in range(len(ext_dl))):
                     self.status = - 1
                     self.next = None
@@ -182,10 +189,12 @@ class Canvas():
             return [0]
 
     def ext_downleft(self, r, c):
+        #print(str(r) + '->' + str(r+self.wins-1))
+        #print(str(c-(self.wins-1)) + '->' + str(c+1))
         if (((r + self.wins-1) <= self.height-1) and
-            ((c - self.wins-1) >= 0)):
+            ((c - (self.wins-1)) >= 0)):
             matrix = [self._canvas[r+i][c-(self.wins-1):c+1] for i in range(self.wins)]
-            return [matrix[i][i] for i in list(range(self.wins))[::-1]]
+            return [matrix[(self.wins-1)-i][i] for i in range(self.wins)][::-1]
         else:
             return [0]
 
