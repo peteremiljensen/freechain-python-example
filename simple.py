@@ -5,8 +5,8 @@ import time
 import argparse
 from cmd import Cmd
 
-from blockchain.node import *
-from blockchain.common import *
+from freechain.node import *
+from freechain.common import *
 
 #                   _
 #                  (_)

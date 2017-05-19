@@ -1,5 +1,5 @@
 from colorama import Back
-from blockchain.common import *
+from freechain.common import *
 
 colors = {'red'     : Back.RED + '  ' + Back.RESET,
           'green'   : Back.GREEN + '  ' + Back.RESET,

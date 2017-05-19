@@ -7,7 +7,7 @@ from cmd import Cmd
 from colorama import Fore
 
 from canvas import *
-from blockchain.node import *
+from freechain.node import *
 
 import rsakeys
 import hashlib
