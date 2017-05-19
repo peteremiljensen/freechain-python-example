@@ -84,7 +84,7 @@ class Prompt(Cmd):
              "height":0, "loaves":[], "data":{"nounce":27413},
              "previous_block_hash":"-1",
              "timestamp":"2017-05-01 15:16:52.579123"})
-        self._node._chain._chain = [genesis_block]
+        self._node.add_block(genesis_block)
 
         if file and os.path.exists(self._file):
             chain = Chain.read_chain(self._file)
