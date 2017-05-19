@@ -1,2 +1,2 @@
 # freechain-python-example
-A pixel-painting application using blockchain technology, written in python and a simple implementation as well.
+A pixel-painting application using blockchain technology and a simple console implementation as well, written in python.
