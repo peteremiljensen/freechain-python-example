@@ -2,5 +2,5 @@
 	path = blockchain-python
 	url = https://github.com/peteremiljensen/blockchain-python.git
 [submodule "blockchain"]
-	path = blockchain
+	path = freechain
 	url = https://github.com/peteremiljensen/blockchain-python.git
