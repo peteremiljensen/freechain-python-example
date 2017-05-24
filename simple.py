@@ -8,15 +8,6 @@ from cmd import Cmd
 from freechain.node import *
 from freechain.common import *
 
-#                   _
-#                  (_)
-#   _ __ ___   __ _ _ _ __
-#  | '_ ` _ \ / _` | | '_ \
-#  | | | | | | (_| | | | | |
-#  |_| |_| |_|\__,_|_|_| |_|
-#
-#
-
 parser = argparse.ArgumentParser(description='program for testing of ' +
                                              'blockchain framework')
 parser.add_argument('-p', '--port', nargs='?', default='9000',
