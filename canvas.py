@@ -32,10 +32,10 @@ class Canvas():
 
     def add_player(self, name, color, pubkey):
         if len(self.players) >= self.max_players:
-            print('Game is full')
+            print(warning('Game is full'))
             return False
         if name in self.players.keys():
-            print('Name is already taken')
+            print(warning('Name is already taken'))
             return False
         for player in self.players.keys():
             if self.players[player]['color'] == color:
@@ -72,7 +72,7 @@ class Canvas():
         try:
             self._canvas[x][y] = self.players[name]['color']
         except IndexError:
-            print('Coordinates are out of bounds')
+            print(warning('Coordinates are out of bounds'))
             return False
         self.next()
         self.check_board()
@@ -119,8 +119,7 @@ class Canvas():
             print(info('current turn: ' + cur))
 
     def check_board(self):
-        print(self.height)
-        print(self.width)
+
         for i in range(self.height):
             for j in range(self.width):
                 if self._canvas[i][j] == 0:
