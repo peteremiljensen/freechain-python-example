@@ -112,12 +112,6 @@ def mine(loaves, prev_block):
         print('Block could not be mined')
         return None
 
-def branching_check(local_length, rec_length):
-    if local_length < rec_length:
-        return True
-    else:
-        return False
-
 def branching(chain1, chain2):
     if chain1.get_length() < chain2.get_length():
         return chain2
@@ -125,7 +119,7 @@ def branching(chain1, chain2):
         return chain1
 
 class Prompt(Cmd):
-    PRINTS = ['players', 'loaf_pool', 'mined_loaves', 'blockchain', 'games',
+    PRINTS = ['players', 'blockchain', 'games',
               'current_game', 'turn']
 
     def __init__(self):
@@ -195,7 +189,6 @@ class Prompt(Cmd):
 
         self._node.attach_loaf_validator(loaf_validator)
         self._node.attach_block_validator(block_validator)
-        self._node.attach_branching_check(branching_check)
         self._node.attach_branching(branching)
 
     def do_connect(self, args):
@@ -225,9 +218,9 @@ class Prompt(Cmd):
         rsakeys.write_keys(privkey, pubkey, priv_path, pub_path)
 
     def proces_chain(self, height):
-        if not height < self._node._chain.get_length() - 1:
+        if not height < self._node.get_chain().get_length() - 1:
             return height
-        chain = self._node._chain._chain[height + 1:]
+        chain = self._node.get_chain().get_blocks(height + 1, -1)
         for block in chain:
             if not self.proces_block(block):
                 print('failed to process block of height:',
@@ -236,7 +229,7 @@ class Prompt(Cmd):
         return self._node._chain.get_length() - 1
 
     def proces_block(self, block):
-        for loaf in block._block['loaves']:
+        for loaf in block.get_loaves():
             if not self.proces_loaf(loaf):
                 print('failed to proces loaf')
                 return False
@@ -336,7 +329,7 @@ class Prompt(Cmd):
         if l[0] in self.games.keys():
             print(fail('Game already exists'))
             return
-        if int(l[4]) > int(l[3]):
+        if int(l[4]) > int(l[1]) or int(l[4]) > int(l[1]):
             print(fail('The win condition is too big for the board'))
             return
         try:
@@ -458,7 +451,6 @@ class Prompt(Cmd):
             print (fail('doesnt take any arguments'))
             return
         if self.game == None:
-            print(warning('not in a game'))
             return
         self.games[self.game].print_canvas()
 
@@ -491,13 +483,8 @@ class Prompt(Cmd):
                 res = res[:-1] + "  ]"
                 print(res)
             elif l[0] == self.PRINTS[1]:
-                for loaf in list(self._node._loaf_pool.values()):
-                    print(loaf.json())
-            elif l[0] == self.PRINTS[2]:
-                print(self._node._mined_loaves)
-            elif l[0] == self.PRINTS[3]:
                 print(self._node._chain.json())
-            elif l[0] == self.PRINTS[4]:
+            elif l[0] == self.PRINTS[2]:
                 res = "[ "
                 for game in list(self.games.keys()):
                     if self.games[game].status == -1:
@@ -508,9 +495,9 @@ class Prompt(Cmd):
                         res = res + '\033[93m ' + game + '\033[0m,'
                 res = res[:-1] + "  ]"
                 print(res)
-            elif l[0] == self.PRINTS[5]:
+            elif l[0] == self.PRINTS[3]:
                 if not self.game:
-                    print(fail('not in a game'))
+                    print(warning('not in a game'))
                     return
                 if self.games[self.game].status == -1:
                     print('\033[91m ' + self.game + '\033[0m')
@@ -518,7 +505,7 @@ class Prompt(Cmd):
                     print('\033[92m ' + self.game + '\033[0m')
                 if self.games[self.game].status == 0:
                     print('\033[93m ' + self.game + '\033[0m')
-            elif l[0] == self.PRINTS[6]:
+            elif l[0] == self.PRINTS[4]:
                 turn = self.games[self.game].current_turn()
                 if turn:
                     print(info(turn))
@@ -546,7 +533,7 @@ class Prompt(Cmd):
         ''' Quits program
         '''
         if self._chainfile:
-            Chain.save_chain(self._chainfile, self._node._chain)
+            Chain.save_chain(self._chainfile, self._node.get_chain())
         print(info('Quitting'))
         raise SystemExit
 
