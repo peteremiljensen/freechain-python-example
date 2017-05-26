@@ -206,6 +206,7 @@ class Prompt(Cmd):
                 self._node.connect_node(ip)
             time.sleep(0.5)
             self._procesed_height = 0
+            self.games = {}
             self._procesed_height = self.proces_chain(self._procesed_height)
         except:
             print(fail('error connecting to node'))
