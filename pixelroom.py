@@ -544,7 +544,7 @@ if __name__ == '__main__':
 
     prompt = Prompt()
     prompt.name = input('Name: ')
-    prompt.prompt = '(freechain) '
+    prompt.prompt = '(pixelroom) '
     try:
         prompt.cmdloop(info('Starting node on port ' + str(port) + '...'))
     except KeyboardInterrupt:
