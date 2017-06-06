@@ -1,6 +1,3 @@
-[submodule "blockchain-python"]
-	path = blockchain-python
-	url = https://github.com/peteremiljensen/blockchain-python.git
-[submodule "blockchain"]
+[submodule "freechain"]
 	path = freechain
-	url = https://github.com/peteremiljensen/blockchain-python.git
+	url = https://github.com/peteremiljensen/freechain-python.git
