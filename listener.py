@@ -66,12 +66,6 @@ def loaf_validator(loaf):
         raise
         return False
 
-def block_validator(block):
-    hash_calc = block.calculate_hash()
-    os.system('reset')
-    print(block.json())
-    return block.get_hash() == hash_calc
-
 def branching(chain1, chain2):
     if chain1.get_length() < chain2.get_length():
         return chain2
@@ -80,6 +74,12 @@ def branching(chain1, chain2):
 
 class Prompt(Cmd):
     PRINTS = ['loaf_pool', 'mined_loaves', 'blockchain', 'block_hash']
+
+    def block_validator(self, block):
+        hash_calc = block.calculate_hash()
+        os.system('reset')
+        print(self.node.get_chain().json())
+        return block.get_hash() == hash_calc
 
     def __init__(self):
         ''' Prompt class constructor
@@ -100,7 +100,7 @@ class Prompt(Cmd):
         self._node.start()
 
         self._node.attach_loaf_validator(loaf_validator)
-        self._node.attach_block_validator(block_validator)
+        self._node.attach_block_validator(self.block_validator)
         self._node.attach_branching(branching)
 
     def do_connect(self, args):
