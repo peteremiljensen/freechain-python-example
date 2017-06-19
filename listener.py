@@ -88,13 +88,11 @@ class Prompt(Cmd):
 
         self._port = port
         self._node = Node(self._port)
-        Events.Instance().register_callback(EVENTS_TYPE.RECEIVED_BLOCK,
-                                            lambda _: self.do_z(""))
         genesis_block = Block.create_block_from_dict(
-            {"hash":"000077dbf86e9c0d593ac746a0658d88b966ddd0a132dcf9294c23a929ed4573",
-             "height":0, "loaves":[], "data":{"nounce":27413},
+            {"hash":"00001620395c8da353f5005e713fe2fee85ad63c618ad01b7dd712bc5f4cc56d",
+             "height":0, "loaves":[], "data":"",
              "previous_block_hash":"-1",
-             "timestamp":"2017-05-01 15:16:52.579123"})
+             "timestamp":"2017-05-01 15:19:56.585873"})
         self._node.add_block(genesis_block)
 
         self._node.start()
