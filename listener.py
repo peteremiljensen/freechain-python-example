@@ -99,7 +99,7 @@ class Prompt(Cmd):
         self._node.add_block(genesis_block)
 
         self._node.attach_loaf_validator(loaf_validator)
-        self._node.attach_block_validator(self.block_validator)
+        self._node.attach_block_validator(block_validator)
         self._node.attach_branching(branching)
 
         Events.Instance().register_callback(EVENTS_TYPE.RECEIVED_BLOCK,
