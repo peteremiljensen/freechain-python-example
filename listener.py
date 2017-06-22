@@ -78,7 +78,7 @@ class Prompt(Cmd):
     def block_validator(self, block):
         hash_calc = block.calculate_hash()
         os.system('reset')
-        print(self.node.get_chain().json())
+        print(self._node.get_chain().json())
         return block.get_hash() == hash_calc
 
     def __init__(self):
