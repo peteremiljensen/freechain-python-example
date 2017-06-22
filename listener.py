@@ -66,6 +66,10 @@ def loaf_validator(loaf):
         raise
         return False
 
+def block_validator(block):
+    hash_calc = block.calculate_hash()
+    return block.get_hash() == hash_calc
+
 def branching(chain1, chain2):
     if chain1.get_length() < chain2.get_length():
         return chain2
@@ -75,12 +79,10 @@ def branching(chain1, chain2):
 class Prompt(Cmd):
     PRINTS = ['loaf_pool', 'mined_loaves', 'blockchain', 'block_hash']
 
-    def block_validator(self, block):
-        hash_calc = block.calculate_hash()
+    def print_chain(self, block):
         os.system('reset')
         print(json.dumps(json.loads(self._node.get_chain().json()),
                          sort_keys=True, indent=4, separators=(',', ': ')))
-        return block.get_hash() == hash_calc
 
     def __init__(self):
         ''' Prompt class constructor
@@ -96,11 +98,14 @@ class Prompt(Cmd):
              "timestamp":"2017-05-01 15:19:56.585873"})
         self._node.add_block(genesis_block)
 
-        self._node.start()
-
         self._node.attach_loaf_validator(loaf_validator)
         self._node.attach_block_validator(self.block_validator)
         self._node.attach_branching(branching)
+
+        Events.Instance().register_callback(EVENTS_TYPE.RECEIVED_BLOCK,
+                                            self.print_chain)
+
+        self._node.start()
 
     def do_connect(self, args):
         ''' Parses the arguments to get nodes ip and connects to node
